@@ -24,8 +24,8 @@ Vents = 18
 Heaters = 23
 Cooler_wall = 24
 Grow_lights1 = 25
-Grow_lights2 = 08
-Extra = 07 # This is an extra relay and can be used for anything
+Grow_lights2 = 8
+Extra = 7 # This is an extra relay and can be used for anything
 
 # Set Heating, cooling, and lighting pins as outputs
 # Also pins are initially set to HIGH which is off since these are relays
@@ -184,26 +184,55 @@ def sensor_id(bus):
     print ("Chip ID     :", chip_id)
     print ("Version     :", chip_version)
 
-# def main():
-#
-#     (chip_id, chip_version) = readBME280ID()
-#     print ("Chip ID     :", chip_id)
-#     print ("Version     :", chip_version)
-#
-#     temperature,pressure,humidity = readBME280All()
-#
-#     print ("Temperature : ", temperature, "C")
-#     print ("Pressure : ", pressure, "hPa")
-#     print ("Humidity : ", humidity, "%")
+def all_on():
+    GPIO.output(Exhaustfans_set1, GPIO.LOW)
+    time.sleep(1)
+    GPIO.output(Exhaustfans_set2, GPIO.LOW)
+    time.sleep(1)
+    GPIO.output(Vents, GPIO.LOW)
+    time.sleep(1)
+    GPIO.output(Heaters, GPIO.LOW)
+    time.sleep(1)
+    GPIO.output(Cooler_wall, GPIO.LOW)
+    time.sleep(1)
+    GPIO.output(Grow_lights1, GPIO.LOW)
+    time.sleep(1)
+    GPIO.output(Grow_lights2, GPIO.LOW)
+    time.sleep(1)
+    GPIO.output(Extra, GPIO.LOW)
+
+def all_off():
+    GPIO.output(Exhaustfans_set1, GPIO.HIGH)
+    time.sleep(1)
+    GPIO.output(Exhaustfans_set2, GPIO.HIGH)
+    time.sleep(1)
+    GPIO.output(Vents, GPIO.HIGH)
+    time.sleep(1)
+    GPIO.output(Heaters, GPIO.HIGH)
+    time.sleep(1)
+    GPIO.output(Cooler_wall, GPIO.HIGH)
+    time.sleep(1)
+    GPIO.output(Grow_lights1, GPIO.HIGH)
+    time.sleep(1)
+    GPIO.output(Grow_lights2, GPIO.HIGH)
+    time.sleep(1)
+    GPIO.output(Extra, GPIO.HIGH)
+
+def main():
+    try:
+        print("Sensor 1")
+        temp(bus1)
+        pres(bus1)
+        humid(bus1)
+        print(" ")
+        print("Sensor 2")
+        temp(bus4)
+        pres(bus4)
+        humid(bus4)
+        all_on()
+        all_off()
+    except KeyboardInterrupt:
+        GPIO.cleanup()
 
 if __name__=="__main__":
-    # main()
-    print("Sensor 1")
-    temp(bus1)
-    pres(bus1)
-    humid(bus1)
-    print(" ")
-    print("Sensor 2")
-    temp(bus4)
-    pres(bus4)
-    humid(bus4)
+    main()
