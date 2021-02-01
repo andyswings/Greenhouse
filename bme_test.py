@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-
 import smbus
 import time
 from ctypes import c_short
@@ -164,6 +163,14 @@ def readBME280All(addr, bus):
 
     return temperature/100.0,pressure/100.0,humidity
 
+def alt(bus):
+    temperature,pressure,humidity = readBME280All(DEVICE, bus)
+    std_pres = 1013.25
+    alt_var = float(std_pres / pressure) ** 0.19022256 - 1
+    altitude = round((float(temperature + 273.15) * alt_var) / 0.0065 * 3.2808399, 1)
+    print("# Calculated altitude: ", altitude, "ft")
+    return altitude
+
 def temp(bus):
     temperature,pressure,humidity = readBME280All(DEVICE, bus)
     print("# Temperature: ", temperature, "C")
@@ -171,12 +178,12 @@ def temp(bus):
 
 def pres(bus):
     temperature,pressure,humidity = readBME280All(DEVICE, bus)
-    print("# Pressure: ", pressure, "hPa")
+    print("# Pressure: ", round(pressure, 2), "hPa")
     return pressure
 
 def humid(bus):
     temperature,pressure,humidity = readBME280All(DEVICE, bus)
-    print("# Humidity: ", humidity, "%")
+    print("# Humidity: ", round(humidity, 2), "%")
     return humidity
 
 def sensor_id(bus):
@@ -200,6 +207,7 @@ def all_on():
     GPIO.output(Grow_lights2, GPIO.LOW)
     time.sleep(1)
     GPIO.output(Extra, GPIO.LOW)
+    time.sleep(1)
 
 def all_off():
     GPIO.output(Exhaustfans_set1, GPIO.HIGH)
@@ -224,11 +232,15 @@ def main():
         temp(bus1)
         pres(bus1)
         humid(bus1)
+        alt(bus1)
+
         print(" ")
         print("Sensor 2")
         temp(bus4)
         pres(bus4)
         humid(bus4)
+        alt(bus4)
+        
         all_on()
         all_off()
     except KeyboardInterrupt:
