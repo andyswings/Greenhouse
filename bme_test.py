@@ -10,6 +10,17 @@ import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BCM) # Turn on the GPIO board
 GPIO.setwarnings(False)
 
+absolute_max_temp = 32.5
+yellow_high_temp = 29.5
+safe_high_temp = 26.7
+safe_low_temp = 21.0
+yellow_low_temp = 18.5
+absolute_min_temp = 15.5
+
+max_humid = 60
+yellow_humid = 55
+ok_humid = 50
+
 DEVICE = 0x76 # Default device I2C address
 
 bus1 = smbus.SMBus(1) # Rev 2 Pi, Pi 2 & Pi 3 uses bus 1
@@ -17,25 +28,25 @@ bus1 = smbus.SMBus(1) # Rev 2 Pi, Pi 2 & Pi 3 uses bus 1
 bus4 = smbus.SMBus(4)
 
 # Define heating, cooling and lighting control pins
-Exhaustfans_set1 = 14
-Exhaustfans_set2 = 15
-Vents = 18
-Heaters = 23
-Cooler_wall = 24
-Grow_lights1 = 25
-Grow_lights2 = 8
-Extra = 7 # This is an extra relay and can be used for anything
+exhaustfans_set1 = 14
+exhaustfans_set2 = 15
+vents = 18
+heaters = 23
+cooler_wall = 24
+cooler_water = 25
+grow_lights1 = 8
+grow_lights2 = 7 # This is an extra relay and can be used for anything
 
 # Set Heating, cooling, and lighting pins as outputs
 # Also pins are initially set to HIGH which is off since these are relays
-GPIO.setup(Exhaustfans_set1, GPIO.OUT, initial=GPIO.HIGH)
-GPIO.setup(Exhaustfans_set2, GPIO.OUT, initial=GPIO.HIGH)
-GPIO.setup(Vents, GPIO.OUT, initial=GPIO.HIGH)
-GPIO.setup(Heaters, GPIO.OUT, initial=GPIO.HIGH)
-GPIO.setup(Cooler_wall, GPIO.OUT, initial=GPIO.HIGH)
-GPIO.setup(Grow_lights1, GPIO.OUT, initial=GPIO.HIGH)
-GPIO.setup(Grow_lights2, GPIO.OUT, initial=GPIO.HIGH)
-GPIO.setup(Extra, GPIO.OUT, initial=GPIO.HIGH) # Extra relay is turned off.
+GPIO.setup(exhaustfans_set1, GPIO.OUT, initial=GPIO.HIGH)
+GPIO.setup(exhaustfans_set2, GPIO.OUT, initial=GPIO.HIGH)
+GPIO.setup(vents, GPIO.OUT, initial=GPIO.HIGH)
+GPIO.setup(heaters, GPIO.OUT, initial=GPIO.HIGH)
+GPIO.setup(cooler_wall, GPIO.OUT, initial=GPIO.HIGH)
+GPIO.setup(cooler_water, GPIO.OUT, initial=GPIO.HIGH)
+GPIO.setup(grow_lights1, GPIO.OUT, initial=GPIO.HIGH)
+GPIO.setup(grow_lights2, GPIO.OUT, initial=GPIO.HIGH)
 
 def getShort(data, index):
     # return two bytes from data as a signed 16-bit value
@@ -163,7 +174,7 @@ def readBME280All(addr, bus):
 
     return temperature/100.0,pressure/100.0,humidity
 
-def alt(bus):
+def alt(bus): # Function to calculate altitude
     temperature,pressure,humidity = readBME280All(DEVICE, bus)
     std_pres = 1013.25
     alt_var = float(std_pres / pressure) ** 0.19022256 - 1
@@ -191,58 +202,91 @@ def sensor_id(bus):
     print ("Chip ID     :", chip_id)
     print ("Version     :", chip_version)
 
+def on(relay):
+    GPIO.output(relay, GPIO.LOW)
+
+def off(relay):
+    GPIO.output(relay, GPIO.HIGH)
+
+def temp_control():
+    temp = temp(bus1)
+    humid = humid(bus1)
+    if temp >= absolute_max_temp or humid >= max_humid:
+        on(cooler_wall) # TODO: create the ability to open or close partially
+        on(exhaustfans_set1)
+        on(exhaustfans_set2)
+    elif temp >= yellow_high_temp or humid >= yellow_humid:
+        on(cooler_wall) # TODO: create the ability to open or close partially
+        on(exhaustfans_set1)
+        off(exhaustfans_set2)
+    elif temp < safe_high_temp and temp > safe_low_temp:
+        off(cooler_wall) # TODO: create the ability to open or close partially
+        off(exhaustfans_set1)
+        off(exhaustfans_set2)
+    elif temp < yellow_low_temp:
+        off(cooler_wall) # TODO: create the ability to open or close partially
+        on(heaters)
+    elif temp <= absolute_min_temp:
+        off(cooler_wall) # TODO: create the ability to open or close partially
+        on(heaters)
+
 def all_on():
-    GPIO.output(Exhaustfans_set1, GPIO.LOW)
+    GPIO.output(exhaustfans_set1, GPIO.LOW)
     time.sleep(1)
-    GPIO.output(Exhaustfans_set2, GPIO.LOW)
+    GPIO.output(exhaustfans_set2, GPIO.LOW)
     time.sleep(1)
-    GPIO.output(Vents, GPIO.LOW)
+    GPIO.output(vents, GPIO.LOW)
     time.sleep(1)
-    GPIO.output(Heaters, GPIO.LOW)
+    GPIO.output(heaters, GPIO.LOW)
     time.sleep(1)
-    GPIO.output(Cooler_wall, GPIO.LOW)
+    GPIO.output(cooler_wall, GPIO.LOW)
     time.sleep(1)
-    GPIO.output(Grow_lights1, GPIO.LOW)
+    GPIO.output(cooler_water, GPIO.LOW)
     time.sleep(1)
-    GPIO.output(Grow_lights2, GPIO.LOW)
+    GPIO.output(grow_lights2, GPIO.LOW)
     time.sleep(1)
-    GPIO.output(Extra, GPIO.LOW)
+    GPIO.output(grow_lights1, GPIO.LOW)
     time.sleep(1)
 
 def all_off():
-    GPIO.output(Exhaustfans_set1, GPIO.HIGH)
+    GPIO.output(exhaustfans_set1, GPIO.HIGH)
     time.sleep(1)
-    GPIO.output(Exhaustfans_set2, GPIO.HIGH)
+    GPIO.output(exhaustfans_set2, GPIO.HIGH)
     time.sleep(1)
-    GPIO.output(Vents, GPIO.HIGH)
+    GPIO.output(vents, GPIO.HIGH)
     time.sleep(1)
-    GPIO.output(Heaters, GPIO.HIGH)
+    GPIO.output(heaters, GPIO.HIGH)
     time.sleep(1)
-    GPIO.output(Cooler_wall, GPIO.HIGH)
+    GPIO.output(cooler_wall, GPIO.HIGH)
     time.sleep(1)
-    GPIO.output(Grow_lights1, GPIO.HIGH)
+    GPIO.output(cooler_water, GPIO.HIGH)
     time.sleep(1)
-    GPIO.output(Grow_lights2, GPIO.HIGH)
+    GPIO.output(grow_lights2, GPIO.HIGH)
     time.sleep(1)
-    GPIO.output(Extra, GPIO.HIGH)
+    GPIO.output(grow_lights1, GPIO.HIGH)
+
+def sense_test():
+    print("Sensor 1")
+    temp(bus1)
+    pres(bus1)
+    humid(bus1)
+    alt(bus1)
+    print(" ")
+    print("Sensor 2")
+    temp(bus4)
+    pres(bus4)
+    humid(bus4)
+    alt(bus4)
+
+def relay_test():
+    all_on()
+    all_off()
 
 def main():
     try:
-        print("Sensor 1")
-        temp(bus1)
-        pres(bus1)
-        humid(bus1)
-        alt(bus1)
-
-        print(" ")
-        print("Sensor 2")
-        temp(bus4)
-        pres(bus4)
-        humid(bus4)
-        alt(bus4)
-        
-        all_on()
-        all_off()
+        print('this is the main program.')
+        sense_test()
+        relay_test()
     except KeyboardInterrupt:
         GPIO.cleanup()
 
