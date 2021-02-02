@@ -209,60 +209,65 @@ def off(relay):
     GPIO.output(relay, GPIO.HIGH)
 
 def temp_control():
-    temp = temp(bus1)
-    humid = humid(bus1)
-    if temp >= absolute_max_temp or humid >= max_humid:
-        on(cooler_wall) # TODO: create the ability to open or close partially
-        on(exhaustfans_set1)
-        on(exhaustfans_set2)
-    elif temp >= yellow_high_temp or humid >= yellow_humid:
-        on(cooler_wall) # TODO: create the ability to open or close partially
-        on(exhaustfans_set1)
-        off(exhaustfans_set2)
-    elif temp < safe_high_temp and temp > safe_low_temp:
-        off(cooler_wall) # TODO: create the ability to open or close partially
-        off(exhaustfans_set1)
-        off(exhaustfans_set2)
-    elif temp < yellow_low_temp:
-        off(cooler_wall) # TODO: create the ability to open or close partially
-        on(heaters)
-    elif temp <= absolute_min_temp:
-        off(cooler_wall) # TODO: create the ability to open or close partially
-        on(heaters)
+    x = 10
+    while x > 0:
+        # x = 10
+        temperature = temp(bus1)
+        humidity = humid(bus1)
+        if temperature >= absolute_max_temp or humidity >= max_humid:
+            on(cooler_wall) # TODO: create the ability to open or close partially
+            on(exhaustfans_set1)
+            on(exhaustfans_set2)
+        elif temperature >= yellow_high_temp or humidity >= yellow_humid:
+            on(cooler_wall) # TODO: create the ability to open or close partially
+            on(exhaustfans_set1)
+            off(exhaustfans_set2)
+        elif temperature < safe_high_temp and temperature > safe_low_temp:
+            off(cooler_wall) # TODO: create the ability to open or close partially
+            off(exhaustfans_set1)
+            off(exhaustfans_set2)
+        elif temperature < yellow_low_temp:
+            off(cooler_wall) # TODO: create the ability to open or close partially
+            on(heaters)
+        elif temperature <= absolute_min_temp:
+            off(cooler_wall) # TODO: create the ability to open or close partially
+            on(heaters)
+        time.sleep(2)
+        x = x - 1
 
 def all_on():
     GPIO.output(exhaustfans_set1, GPIO.LOW)
-    time.sleep(1)
+    time.sleep(0.4)
     GPIO.output(exhaustfans_set2, GPIO.LOW)
-    time.sleep(1)
+    time.sleep(0.4)
     GPIO.output(vents, GPIO.LOW)
-    time.sleep(1)
+    time.sleep(0.4)
     GPIO.output(heaters, GPIO.LOW)
-    time.sleep(1)
+    time.sleep(0.4)
     GPIO.output(cooler_wall, GPIO.LOW)
-    time.sleep(1)
+    time.sleep(0.4)
     GPIO.output(cooler_water, GPIO.LOW)
-    time.sleep(1)
+    time.sleep(0.4)
     GPIO.output(grow_lights2, GPIO.LOW)
-    time.sleep(1)
+    time.sleep(0.4)
     GPIO.output(grow_lights1, GPIO.LOW)
-    time.sleep(1)
+    time.sleep(0.4)
 
 def all_off():
     GPIO.output(exhaustfans_set1, GPIO.HIGH)
-    time.sleep(1)
+    time.sleep(0.4)
     GPIO.output(exhaustfans_set2, GPIO.HIGH)
-    time.sleep(1)
+    time.sleep(0.4)
     GPIO.output(vents, GPIO.HIGH)
-    time.sleep(1)
+    time.sleep(0.4)
     GPIO.output(heaters, GPIO.HIGH)
-    time.sleep(1)
+    time.sleep(0.4)
     GPIO.output(cooler_wall, GPIO.HIGH)
-    time.sleep(1)
+    time.sleep(0.4)
     GPIO.output(cooler_water, GPIO.HIGH)
-    time.sleep(1)
+    time.sleep(0.4)
     GPIO.output(grow_lights2, GPIO.HIGH)
-    time.sleep(1)
+    time.sleep(0.4)
     GPIO.output(grow_lights1, GPIO.HIGH)
 
 def sense_test():
@@ -277,6 +282,7 @@ def sense_test():
     pres(bus4)
     humid(bus4)
     alt(bus4)
+    print(" ")
 
 def relay_test():
     all_on()
@@ -284,9 +290,10 @@ def relay_test():
 
 def main():
     try:
-        print('this is the main program.')
+        print('This is the main program.')
         sense_test()
         relay_test()
+        temp_control()
     except KeyboardInterrupt:
         GPIO.cleanup()
 
