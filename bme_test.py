@@ -213,6 +213,7 @@ def temp_control():
         #
         # This code only runs if the outside temperature is less than the inside temperature
         if out_temp < in_temp: # Determine if outside temperature is less than inside temperature
+            print("Outside temperature is lower than inside temperature")
             if in_temp >= absolute_max_temp or in_humid >= max_humid:
                 on(cooler_wall) # TODO: create the ability to open or close partially
                 on(exhaustfans_set1)
@@ -234,6 +235,7 @@ def temp_control():
         #
         # This code only runs if the outside temperature is greater than the inside temperature
         else:
+            print("Outside temperature is higher than inside temperature")
             if in_temp >= absolute_max_temp or in_humid >= max_humid:
                 on(cooler_wall) # TODO: create the ability to open or close partially
                 on(exhaustfans_set1)
@@ -291,19 +293,19 @@ def all_off(): # Turns off all relays
     GPIO.output(grow_lights1, GPIO.HIGH)
 
 def sense_test(): # The only purpose of this function is to test sensors
-    print("Sensor 1")
+    print("'Outside' sensor")
     print("# Temperature: ", temp(bus1), "C")
     print("# Pressure: ", round(pres(bus1), 2), "hPa")
     print("# Humidity: ", round(humid(bus1), 2), "%")
     print("# Calculated altitude: ", alt(bus1), "ft")
     print(" ")
-    print("Sensor 2")
+    print("'Inside' sensor 1")
     print("# Temperature: ", temp(bus3), "C")
     print("# Pressure: ", round(pres(bus3), 2), "hPa")
     print("# Humidity: ", round(humid(bus3), 2), "%")
     print("# Calculated altitude: ", alt(bus3), "ft")
     print(" ")
-    print("Sensor 3")
+    print("'Inside' sensor 2")
     print("# Temperature: ", temp(bus4), "C")
     print("# Pressure: ", round(pres(bus4), 2), "hPa")
     print("# Humidity: ", round(humid(bus4), 2), "%")
