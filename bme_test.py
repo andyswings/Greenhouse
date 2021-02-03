@@ -22,9 +22,8 @@ yellow_humid = 55
 ok_humid = 50
 
 DEVICE = 0x76 # Default device I2C address
-
 bus1 = smbus.SMBus(1) # Rev 2 Pi, Pi 2 & Pi 3 uses bus 1
-                     # Rev 1 Pi uses bus 0
+bus3 = smbus.SMBus(3) # Rev 1 Pi uses bus 0
 bus4 = smbus.SMBus(4)
 
 # Define heating, cooling and lighting control pins
@@ -211,7 +210,6 @@ def off(relay):
 def temp_control():
     x = 10
     while x > 0:
-        # x = 10
         temperature = temp(bus1)
         humidity = humid(bus1)
         if temperature >= absolute_max_temp or humidity >= max_humid:
