@@ -10,6 +10,7 @@ import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BCM) # Turn on the GPIO board
 GPIO.setwarnings(False)
 
+# Define temperature levels for use in controlling the greenhouse
 absolute_max_temp = 32.5
 yellow_high_temp = 29.5
 safe_high_temp = 26.7
@@ -17,16 +18,17 @@ safe_low_temp = 21.0
 yellow_low_temp = 18.5
 absolute_min_temp = 15.5
 
+# Define humidity levels for use in controlling the greenhouse
 max_humid = 60
 yellow_humid = 55
 ok_humid = 50
 
-DEVICE = 0x76 # Default device I2C address
+DEVICE = 0x76 # Default device I2C address used for all three temperature sensors
 bus1 = smbus.SMBus(1) # Rev 2 Pi, Pi 2 & Pi 3 uses bus 1
 bus3 = smbus.SMBus(3) # Rev 1 Pi uses bus 0
 bus4 = smbus.SMBus(4)
 
-# Define heating, cooling and lighting control pins
+# Define heating, cooling and lighting control pins so that the Pi knows which pins to use
 exhaustfans_set1 = 14
 exhaustfans_set2 = 15
 vents = 18
@@ -34,7 +36,7 @@ heaters = 23
 cooler_wall = 24
 cooler_water = 25
 grow_lights1 = 8
-grow_lights2 = 7 # This is an extra relay and can be used for anything
+grow_lights2 = 7
 
 # Set Heating, cooling, and lighting pins as outputs
 # Also pins are initially set to HIGH which is off since these are relays
@@ -66,12 +68,6 @@ def getUChar(data,index):
     # return one byte from data as an unsigned char
     result =  data[index] & 0xFF
     return result
-
-def readBME280ID(addr, bus):
-    # Chip ID Register Address
-    REG_ID     = 0xD0
-    (chip_id, chip_version) = bus.read_i2c_block_data(addr, REG_ID, 2)
-    return (chip_id, chip_version)
 
 def readBME280All(addr, bus):
     # Register Addresses
@@ -178,62 +174,88 @@ def alt(bus): # Function to calculate altitude
     std_pres = 1013.25
     alt_var = float(std_pres / pressure) ** 0.19022256 - 1
     altitude = round((float(temperature + 273.15) * alt_var) / 0.0065 * 3.2808399, 1)
-    print("# Calculated altitude: ", altitude, "ft")
     return altitude
 
-def temp(bus):
+def temp(bus): # Function to return temperature separately from other data
     temperature,pressure,humidity = readBME280All(DEVICE, bus)
-    print("# Temperature: ", temperature, "C")
     return temperature
 
-def pres(bus):
+def av_temp(bus_x, bus_y): # Function to return average temperature
+    ave_temp = float(temp(bus_x) + temp(bus_y)) / 2.0
+    return ave_temp
+
+def pres(bus): # Function to return pressure separately from other data
     temperature,pressure,humidity = readBME280All(DEVICE, bus)
-    print("# Pressure: ", round(pressure, 2), "hPa")
     return pressure
 
-def humid(bus):
+def humid(bus): # Function to return humidity separately from other data
     temperature,pressure,humidity = readBME280All(DEVICE, bus)
-    print("# Humidity: ", round(humidity, 2), "%")
     return humidity
 
-def sensor_id(bus):
-    (chip_id, chip_version) = readBME280ID(DEVICE, bus)
-    print ("Chip ID     :", chip_id)
-    print ("Version     :", chip_version)
+def av_humid(bus_x, bus_y): # Function to return average humidity
+    ave_humid = float(humid(bus_x) + humid(bus_y)) / 2.0
+    return ave_humid
 
-def on(relay):
+def on(relay): # Function to turn on relays
     GPIO.output(relay, GPIO.LOW)
 
-def off(relay):
+def off(relay): # Function to turn off relays
     GPIO.output(relay, GPIO.HIGH)
 
+# This is where all the temperature control happens
 def temp_control():
     x = 10
-    while x > 0:
-        temperature = temp(bus1)
-        humidity = humid(bus1)
-        if temperature >= absolute_max_temp or humidity >= max_humid:
-            on(cooler_wall) # TODO: create the ability to open or close partially
-            on(exhaustfans_set1)
-            on(exhaustfans_set2)
-        elif temperature >= yellow_high_temp or humidity >= yellow_humid:
-            on(cooler_wall) # TODO: create the ability to open or close partially
-            on(exhaustfans_set1)
-            off(exhaustfans_set2)
-        elif temperature < safe_high_temp and temperature > safe_low_temp:
-            off(cooler_wall) # TODO: create the ability to open or close partially
-            off(exhaustfans_set1)
-            off(exhaustfans_set2)
-        elif temperature < yellow_low_temp:
-            off(cooler_wall) # TODO: create the ability to open or close partially
-            on(heaters)
-        elif temperature <= absolute_min_temp:
-            off(cooler_wall) # TODO: create the ability to open or close partially
-            on(heaters)
-        time.sleep(2)
+    while x > 0: # This will later be set to 'While True' when testing is done
+        out_temp = temp(bus1)
+        out_humid = humid(bus1)
+        in_temp = av_temp(bus3, bus4)
+        in_humid = av_humid(bus3, bus4)
+        #
+        # This code only runs if the outside temperature is less than the inside temperature
+        if out_temp < in_temp: # Determine if outside temperature is less than inside temperature
+            if in_temp >= absolute_max_temp or in_humid >= max_humid:
+                on(cooler_wall) # TODO: create the ability to open or close partially
+                on(exhaustfans_set1)
+                on(exhaustfans_set2)
+            elif in_temp >= yellow_high_temp or in_humid >= yellow_humid:
+                on(cooler_wall) # TODO: create the ability to open or close partially
+                on(exhaustfans_set1)
+                off(exhaustfans_set2)
+            elif in_temp < safe_high_temp and in_temp > safe_low_temp:
+                off(cooler_wall) # TODO: create the ability to open or close partially
+                off(exhaustfans_set1)
+                off(exhaustfans_set2)
+            elif in_temp < yellow_low_temp:
+                off(cooler_wall) # TODO: create the ability to open or close partially
+                on(heaters)
+            elif in_temp <= absolute_min_temp:
+                off(cooler_wall) # TODO: create the ability to open or close partially
+                on(heaters)
+        #
+        # This code only runs if the outside temperature is greater than the inside temperature
+        else:
+            if in_temp >= absolute_max_temp or in_humid >= max_humid:
+                on(cooler_wall) # TODO: create the ability to open or close partially
+                on(exhaustfans_set1)
+                on(exhaustfans_set2)
+            elif in_temp >= yellow_high_temp or in_humid >= yellow_humid:
+                on(cooler_wall) # TODO: create the ability to open or close partially
+                on(exhaustfans_set1)
+                off(exhaustfans_set2)
+            elif in_temp < safe_high_temp and in_temp > safe_low_temp:
+                off(cooler_wall) # TODO: create the ability to open or close partially
+                off(exhaustfans_set1)
+                off(exhaustfans_set2)
+            elif in_temp < yellow_low_temp:
+                off(cooler_wall) # TODO: create the ability to open or close partially
+                on(heaters)
+            elif in_temp <= absolute_min_temp:
+                off(cooler_wall) # TODO: create the ability to open or close partially
+                on(heaters)
+        time.sleep(0.5)
         x = x - 1
 
-def all_on():
+def all_on(): # Turns on all relays
     GPIO.output(exhaustfans_set1, GPIO.LOW)
     time.sleep(0.4)
     GPIO.output(exhaustfans_set2, GPIO.LOW)
@@ -251,7 +273,7 @@ def all_on():
     GPIO.output(grow_lights1, GPIO.LOW)
     time.sleep(0.4)
 
-def all_off():
+def all_off(): # Turns off all relays
     GPIO.output(exhaustfans_set1, GPIO.HIGH)
     time.sleep(0.4)
     GPIO.output(exhaustfans_set2, GPIO.HIGH)
@@ -268,27 +290,33 @@ def all_off():
     time.sleep(0.4)
     GPIO.output(grow_lights1, GPIO.HIGH)
 
-def sense_test():
+def sense_test(): # The only purpose of this function is to test sensors
     print("Sensor 1")
-    temp(bus1)
-    pres(bus1)
-    humid(bus1)
-    alt(bus1)
+    print("# Temperature: ", temp(bus1), "C")
+    print("# Pressure: ", round(pres(bus1), 2), "hPa")
+    print("# Humidity: ", round(humid(bus1), 2), "%")
+    print("# Calculated altitude: ", alt(bus1), "ft")
     print(" ")
     print("Sensor 2")
-    temp(bus4)
-    pres(bus4)
-    humid(bus4)
-    alt(bus4)
+    print("# Temperature: ", temp(bus3), "C")
+    print("# Pressure: ", round(pres(bus3), 2), "hPa")
+    print("# Humidity: ", round(humid(bus3), 2), "%")
+    print("# Calculated altitude: ", alt(bus3), "ft")
+    print(" ")
+    print("Sensor 3")
+    print("# Temperature: ", temp(bus4), "C")
+    print("# Pressure: ", round(pres(bus4), 2), "hPa")
+    print("# Humidity: ", round(humid(bus4), 2), "%")
+    print("# Calculated altitude: ", alt(bus4), "ft")
     print(" ")
 
-def relay_test():
+def relay_test(): # The only purpose of this function is to test relays
     all_on()
     all_off()
 
+# This is the main program
 def main():
     try:
-        print('This is the main program.')
         sense_test()
         relay_test()
         temp_control()
