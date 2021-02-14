@@ -23,6 +23,9 @@ max_humid = 60
 yellow_humid = 55
 ok_humid = 50
 
+moist_1 = 4
+light_1 = 12
+
 DEVICE = 0x76 # Default device I2C address used for all three temperature sensors
 bus1 = smbus.SMBus(1) # Rev 2 Pi, Pi 2 & Pi 3 uses bus 1
 bus3 = smbus.SMBus(3) # Rev 1 Pi uses bus 0
@@ -48,6 +51,8 @@ GPIO.setup(cooler_wall, GPIO.OUT, initial=GPIO.HIGH)
 GPIO.setup(cooler_water, GPIO.OUT, initial=GPIO.HIGH)
 GPIO.setup(grow_lights1, GPIO.OUT, initial=GPIO.HIGH)
 GPIO.setup(grow_lights2, GPIO.OUT, initial=GPIO.HIGH)
+GPIO.setup(moist_1, GPIO.IN)
+GPIO.setup(light_1, GPIO.IN)
 
 def getShort(data, index):
     # return two bytes from data as a signed 16-bit value
@@ -310,6 +315,9 @@ def sense_test(): # The only purpose of this function is to test sensors
     print("# Pressure: ", round(pres(bus4), 2), "hPa")
     print("# Humidity: ", round(humid(bus4), 2), "%")
     print("# Calculated altitude: ", alt(bus4), "ft")
+    print(" ")
+    print(GPIO.input(moist_1)) # TRUE == no water, FALSE == enough water sensitivity adjusted on sensor
+    print(GPIO.input(light_1)) # TRUE == dark, FALSE == light sensitivity adjusted on sensor
     print(" ")
 
 def relay_test(): # The only purpose of this function is to test relays
