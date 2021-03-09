@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-# import smbus
+import smbus
 import time
 from ctypes import c_short
 from ctypes import c_byte
