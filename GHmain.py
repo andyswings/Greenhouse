@@ -17,22 +17,22 @@ light_1 = 12
 
 # Define heating, cooling and lighting control pins so that the Pi knows which pins to use
 relay1 = 14
-relay2 = 17
-relay3 = 15
-relay4 = 27
-relay5 = 18
-relay6 = 22
-relay7 = 23
-relay8 = 10
+relay2 = 15
+relay3 = 18
+relay4 = 23
+relay5 = 24
+relay6 = 25
+relay7 = 8
+relay8 = 7
 
-relay9 = 24
-relay10 = 9
-relay11 = 25
-relay12 = 11
-relay13 = 8
-relay14 = 5
-relay15 = 7
-relay16 = 16
+relay9 = 4
+relay10 = 17
+relay11 = 27
+relay12 = 22
+relay13 = 10
+relay14 = 9
+relay15 = 11
+relay16 = 5
 
 # Set Heating, cooling, and lighting pins as outputs
 # Also pins are initially set to HIGH which is off since these are relays
